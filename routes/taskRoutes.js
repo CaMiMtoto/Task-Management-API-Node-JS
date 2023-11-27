@@ -2,6 +2,7 @@
 const express = require('express');
 const Task = require('../models/task');
 const authMiddleware = require('../middleware/authMiddleware');
+const Exceljs = require('exceljs');
 
 const {check, validationResult} = require('express-validator');
 const uploadMiddleware = require("../middleware/uploadMiddleware");
@@ -53,10 +54,11 @@ router.post('/',
 router.get('/', authMiddleware, async (req, res) => {
     try {
         const page = parseInt(req.query.page ?? 1);
-        const limit = parseInt(req.query.limit ?? 10);
+        const limit = parseInt(req.query.limit ?? 3);
         const skip = (page - 1) * limit;
         const sortColumn = req.query.sortColumn ?? '_id';
         const sortOrder = req.query.sortOrder ?? 'asc';
+        const searchQuery = req.query.search ?? '';
 
 
         // get all tasks paginated from the database and populate the createdBy field with the name and email of the user
@@ -85,8 +87,23 @@ router.get('/', authMiddleware, async (req, res) => {
     }
 });
 
+// get overview tasks
+router.get('/overview', authMiddleware, async (req, res) => {
+    const totalTasks = await Task.countDocuments({createdBy: req.user._id});
+    const dueTasks = await Task.countDocuments({createdBy: req.user._id, endDate: {$lt: new Date()}});
+    const recentTasks = await Task.find({createdBy: req.user._id})
+        .sort({_id: 'desc'})
+        .limit(5)
+        .exec();
+
+    res.send({
+        totalTasks,
+        dueTasks,
+        recentTasks,
+    });
+});
 // Read Task by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id/details', async (req, res) => {
     try {
         const task = await Task.findById(req.params.id)
             .populate('assignees', 'name email')
@@ -126,32 +143,24 @@ router.put('/:id',
             return res.status(400).json({errors: errors.array()});
         }
 
-        const updates = Object.keys(req.body);
-        const allowedUpdates = ['title', 'description', 'completed', 'priority'];
-        const isValidOperation = updates.every((update) => allowedUpdates.includes(update));
-
-        if (!isValidOperation) {
-            return res.status(400).send({error: 'Invalid updates!'});
-        }
 
         try {
             let path = req.file?.path;
-
-            if (path) {
-                // delete the old attachment
-                const task = await Task.findById(req.params.id);
-                if (task.attachment) {
-                    await unlink(task.attachment);
-                }
-            }
-
-            const task = await Task.findByIdAndUpdate(req.params.id, {
-                ...req.body,
-                attachment: path,
-            }, {new: true, runValidators: true});
+            let id = req.params.id;
+            console.log(id);
+            const task = await Task.findById(id);
             if (!task) {
                 return res.status(404).send();
             }
+            task.title = req.body.title;
+            task.startDate = req.body.start_date;
+            task.endDate = req.body.end_date;
+            task.description = req.body.description;
+            task.priority = req.body.priority;
+            task.assignees = req.body.assignees ?? [];
+            task.projects = req.body.projects ?? [];
+            task.attachment = path ?? task.attachment;
+            await task.save();
             res.status(200).send(task);
         } catch (error) {
             res.status(400).send(error);
@@ -169,6 +178,37 @@ router.delete('/:id', async (req, res) => {
     } catch (error) {
         res.status(500).send(error);
     }
+});
+
+// export tasks to excel
+
+
+router.get('/export', async (req, res) => {
+    const workbook = new Exceljs.Workbook();
+    const worksheet = workbook.addWorksheet('Tasks');
+    worksheet.columns = [
+        {header: "Title", key: 'title', width: 30},
+        {header: "Start Date", key: 'sartDate', width: 30},
+        {header: "End Date", key: 'endDate', width: 30},
+        {header: "Description", key: 'description', width: 30},
+        {header: "Priority", key: 'priority', width: 30},
+    ];
+    const tasks = await Task.find({createdBy: req.user._id})
+        .populate('assignees', 'name email')
+        .populate('projects', 'title')
+        .exec();
+    tasks.forEach(task => {
+        worksheet.addRow(task);
+    })
+    res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=" + "tasks.xlsx"
+    );
+    workbook.xlsx.write(res).then(() => res.status(200).end());
 });
 
 

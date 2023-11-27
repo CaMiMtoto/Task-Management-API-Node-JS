@@ -9,7 +9,7 @@ const _ = require('lodash');
 
 // Generate JWT token for authentication
 const generateAuthToken = (user) => {
-    return jwt.sign({ _id: user._id.toString() }, 'yourSecretKey', { expiresIn: '1h' });
+    return jwt.sign({ _id: user._id.toString() }, process.env.SECRET_KEY, { expiresIn: '1h' });
 };
 
 // User Registration
