@@ -18,7 +18,7 @@ logout, create, read, update and delete tasks.it allows also to assign tasks to 
 3. Create .env file in the root folder and add the following environment variables
    ```sh
    PORT=3000
-   JWT_SECRET=your_jwt_secret
+   SECRET_KEY=your_jwt_secret
    MONGODB_URI=your_mongodb_url
    ```
 4. Run the app
@@ -28,3 +28,5 @@ logout, create, read, update and delete tasks.it allows also to assign tasks to 
 5. Use Postman to test the API endpoints
 6. Use MongoDB Compass to view the database
 
+Go find the Frontend for this
+API [https://github.com/CaMiMtoto/Task-Management-React-Js](https://github.com/CaMiMtoto/Task-Management-React-Js)
