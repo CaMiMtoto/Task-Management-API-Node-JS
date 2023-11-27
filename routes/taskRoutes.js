@@ -188,17 +188,31 @@ router.get('/export', async (req, res) => {
     const worksheet = workbook.addWorksheet('Tasks');
     worksheet.columns = [
         {header: "Title", key: 'title', width: 30},
-        {header: "Start Date", key: 'sartDate', width: 30},
+        {header: "Start Date", key: 'startDate', width: 30},
         {header: "End Date", key: 'endDate', width: 30},
         {header: "Description", key: 'description', width: 30},
         {header: "Priority", key: 'priority', width: 30},
+        {header: "Assignees", key: 'assignees', width: 30},
+        {header: "Projects", key: 'projects', width: 30},
     ];
-    const tasks = await Task.find({createdBy: req.user._id})
+    const tasks = await Task.find()
         .populate('assignees', 'name email')
         .populate('projects', 'title')
         .exec();
     tasks.forEach(task => {
-        worksheet.addRow(task);
+
+        let assignees = task.assignees.map(assignee => assignee.name).join(', ');
+
+        let projects = task.projects.map(project => project.title).join(', ');
+        worksheet.addRow({
+            title: task.title,
+            startDate: task.startDate,
+            endDate: task.endDate,
+            description: task.description,
+            priority: task.priority,
+            assignees: assignees,
+            projects: projects,
+        });
     })
     res.setHeader(
         "Content-Type",
