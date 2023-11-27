@@ -12,7 +12,6 @@ async function seed() {
         const newUser = new User({
             name: faker.person.fullName(),
             email: faker.internet.email(),
-            phone: faker.phone.number(),
             password: "password",
         });
         await newUser.save();

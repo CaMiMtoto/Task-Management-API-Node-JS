@@ -16,7 +16,6 @@ const generateAuthToken = (user) => {
 router.post('/register', [
     check('name', 'Name is required').not().isEmpty(),
     check('email', 'Email is not valid').not().isEmpty().isEmail(),
-    check('phone', 'Phone is required').not().isEmpty(),
     check('password', 'Password is required').not().isEmpty()
 ], async (req, res) => {
     // Check for validation errors
@@ -35,7 +34,6 @@ router.post('/register', [
         const user = new User({
             name: req.body.name,
             email: req.body.email,
-            phone: req.body.phone,
             password: req.body.password,
         });
         await user.save();
@@ -56,7 +54,7 @@ router.post('/login', [
         const user = await User.findOne({ email });
 
         if (!user) {
-            return res.status(401).send({ message: 'Invalid email address' });
+            return res.status(401).send({ message: 'Invalid credentials' });
         }
 
         const isPasswordMatch = await bcrypt.compare(password, user.password);
@@ -66,7 +64,7 @@ router.post('/login', [
         }
 
         const token = generateAuthToken(user);
-        const userObj = _.pick(user, ['_id', 'name', 'email', 'phone']);
+        const userObj = _.pick(user, ['_id', 'name', 'email']);
         res.send({
             user: userObj, token
         });

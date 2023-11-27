@@ -8,25 +8,28 @@ const taskSchema = new mongoose.Schema({
         trim: true,
         minlength: 3,
     },
+    startDate: {
+        type: Date,
+        required: true
+    },
+    endDate: {
+        type: Date,
+        required: true
+    },
     description: {
         type: String,
         required: true,
         trim: true,
+        maxLength: 255,
     },
     priority: {
         type: String,
         enum: ['Low', 'Medium', 'High'],
-        default: 'Medium',
+        required: true,
     },
-    completed: { type: Boolean, default: false },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
-        ref: 'User',
-    },
-    assignedTo: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: false,
         ref: 'User',
     },
     projects: [
@@ -34,7 +37,17 @@ const taskSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Project'
         }
-    ]
+    ],
+    assignees: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }
+    ],
+    attachment: {
+        type: String,
+        required: false
+    }
 });
 
 const Task = mongoose.model('Task', taskSchema);

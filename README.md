@@ -1,4 +1,4 @@
-# Task-manager-node-api
+# Task Management API
 
 ## Description
 
@@ -9,7 +9,7 @@ logout, create, read, update and delete tasks.it allows also to assign tasks to 
 
 1. Clone the repo
    ```sh
-   git clone https://github.com/CaMiMtoto/Task-manager-node-api.git
+   git clone https://github.com/CaMiMtoto/Task-Management-API-Node-JS.git
     ```
 2. Install NPM packages in the root folder
    ```sh
@@ -27,10 +27,4 @@ logout, create, read, update and delete tasks.it allows also to assign tasks to 
     ```
 5. Use Postman to test the API endpoints
 6. Use MongoDB Compass to view the database
-7. Connect React app to the API to use the app From this repo:
-    ```
-   https://github.com/CaMiMtoto/task-manager-react-js
-    ```
 
-
-# Task-Management-API-Node-JS

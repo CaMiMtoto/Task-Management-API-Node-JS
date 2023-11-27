@@ -6,12 +6,6 @@ const projectSchema = new mongoose.Schema({
         trim: true,
         minlength: 3,
     },
-    tasks: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Task',
-        },
-    ],
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,

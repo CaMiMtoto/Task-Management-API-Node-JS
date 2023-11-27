@@ -4,15 +4,26 @@ const Task = require('../models/task');
 const authMiddleware = require('../middleware/authMiddleware');
 
 const {check, validationResult} = require('express-validator');
+const uploadMiddleware = require("../middleware/uploadMiddleware");
+const {unlink} = require("fs");
 const router = express.Router();
 router.post('/',
     authMiddleware,
+    uploadMiddleware.single('attachment'),
     [
         check('title', 'Title is required').not().isEmpty(),
-        check('description', 'Description must be a string').optional().isString(),
-        check('completed', 'Completed must be a boolean').optional().isBoolean(),
+        check('description', 'Description is required').not().isEmpty(),
+        check('start_date', 'Start date is required').not().isEmpty().isDate(),
+        check('end_date', 'End date is required').not().isEmpty().isDate(),
+        // check('assignees', 'Assignees must be an array').isArray().not().isEmpty(),
+        // check('assignees.*', 'Assignees must be an array of ObjectIds').isMongoId(),
+        // check('projects', 'Projects must be an array').isArray().not().isEmpty(),
+        // check('projects.*', 'Projects must be an array of ObjectIds').isMongoId(),
         check('priority', 'Priority must be one of Low, Medium, High').isIn(['Low', 'Medium', 'High']),
-    ], async (req, res) => {
+        check('attachment').optional().isString(),
+    ],
+
+    async (req, res) => {
         // Check for validation errors
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -20,8 +31,15 @@ router.post('/',
         }
         try {
             const task = new Task({
-                ...req.body,
-                createdBy: req.user._id, // Assign the ID of the logged-in user
+                title: req.body.title,
+                description: req.body.description,
+                startDate: req.body.start_date,
+                endDate: req.body.end_date,
+                assignees: req.body.assignees ?? [],
+                projects: req.body.projects ?? [],
+                priority: req.body.priority,
+                attachment: req.file?.path,
+                createdBy: req.user._id,
             });
             await task.save();
             res.status(201).send(task);
@@ -31,7 +49,7 @@ router.post('/',
     }
 );
 
-// Read All Tasks
+// Get All Tasks
 router.get('/', authMiddleware, async (req, res) => {
     try {
         const page = parseInt(req.query.page ?? 1);
@@ -44,7 +62,8 @@ router.get('/', authMiddleware, async (req, res) => {
         // get all tasks paginated from the database and populate the createdBy field with the name and email of the user
 
         const tasks = await Task.find({createdBy: req.user._id})
-            .populate('createdBy', '_id name email phone')
+            .populate('assignees', 'name email')
+            .populate('projects', 'title')
             .sort({[sortColumn]: sortOrder})
             .skip(skip)
             .limit(limit)
@@ -69,7 +88,10 @@ router.get('/', authMiddleware, async (req, res) => {
 // Read Task by ID
 router.get('/:id', async (req, res) => {
     try {
-        const task = await Task.findById(req.params.id).populate('createdBy', 'name username').exec();
+        const task = await Task.findById(req.params.id)
+            .populate('assignees', 'name email')
+            .populate('projects', 'title')
+            .exec();
         if (!task) {
             return res.status(404).send();
         }
@@ -82,12 +104,21 @@ router.get('/:id', async (req, res) => {
 // Update Task by ID
 router.put('/:id',
     authMiddleware,
+    uploadMiddleware.single('attachment'),
     [
         check('title', 'Title is required').not().isEmpty(),
         check('description', 'Description must be a string').optional().isString(),
-        check('completed', 'Completed must be a boolean').optional().isBoolean(),
         check('priority', 'Priority must be one of Low, Medium, High').isIn(['Low', 'Medium', 'High']),
-    ], async (req, res) => {
+        check('attachment').optional().isString(),
+        check('assignees', 'Assignees must be an array').optional().isArray(),
+        check('assignees.*', 'Assignees must be an array of ObjectIds').optional().isMongoId(),
+        check('projects', 'Projects must be an array').optional().isArray(),
+        check('projects.*', 'Projects must be an array of ObjectIds').optional().isMongoId(),
+        check('start_date', 'Start date is required').optional().isDate(),
+        check('end_date', 'End date is required').optional().isDate(),
+
+    ],
+    async (req, res) => {
 
         // Check for validation errors
         const errors = validationResult(req);
@@ -104,7 +135,20 @@ router.put('/:id',
         }
 
         try {
-            const task = await Task.findByIdAndUpdate(req.params.id, req.body, {new: true, runValidators: true});
+            let path = req.file?.path;
+
+            if (path) {
+                // delete the old attachment
+                const task = await Task.findById(req.params.id);
+                if (task.attachment) {
+                    await unlink(task.attachment);
+                }
+            }
+
+            const task = await Task.findByIdAndUpdate(req.params.id, {
+                ...req.body,
+                attachment: path,
+            }, {new: true, runValidators: true});
             if (!task) {
                 return res.status(404).send();
             }
@@ -121,30 +165,6 @@ router.delete('/:id', async (req, res) => {
         if (!task) {
             return res.status(404).send();
         }
-        res.send(task);
-    } catch (error) {
-        res.status(500).send(error);
-    }
-});
-
-router.patch('/:id/toggle-completed', async (req, res) => {
-    try {
-        const task = await Task.findById(req.params.id);
-        task.completed = !task.completed;
-        await task.save();
-        res.send(task);
-    } catch (error) {
-        res.status(500).send(error);
-    }
-});
-
-// assign a task to a user
-
-router.patch('/:id/assign', async (req, res) => {
-    try {
-        const task = await Task.findById(req.params.id);
-        task.assignedTo = req.body.assignedTo;
-        await task.save();
         res.send(task);
     } catch (error) {
         res.status(500).send(error);
