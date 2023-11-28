@@ -4,9 +4,9 @@ const Task = require('../models/task');
 const authMiddleware = require('../middleware/authMiddleware');
 const Exceljs = require('exceljs');
 
-const {check, validationResult} = require('express-validator');
+const { check, validationResult } = require('express-validator');
 const uploadMiddleware = require("../middleware/uploadMiddleware");
-const {unlink} = require("fs");
+const { unlink } = require("fs");
 const router = express.Router();
 router.post('/',
     authMiddleware,
@@ -28,7 +28,7 @@ router.post('/',
         // Check for validation errors
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({errors: errors.array()});
+            return res.status(400).json({ errors: errors.array() });
         }
         try {
             const task = new Task({
@@ -59,18 +59,36 @@ router.get('/', authMiddleware, async (req, res) => {
         const sortColumn = req.query.sortColumn ?? '_id';
         const sortOrder = req.query.sortOrder ?? 'asc';
         const searchQuery = req.query.search ?? '';
+        const filter = req.query?.filter ?? '';
 
 
         // get all tasks paginated from the database and populate the createdBy field with the name and email of the user
 
-        const tasks = await Task.find({createdBy: req.user._id})
+        let tasks = await Task.find({ createdBy: req.user._id })
             .populate('assignees', 'name email')
             .populate('projects', 'title')
-            .sort({[sortColumn]: sortOrder})
+            .sort({ [sortColumn]: sortOrder })
             .skip(skip)
             .limit(limit)
             .exec();
-        const totalTasks = await Task.countDocuments({createdBy: req.user._id});
+
+        if (filter) {
+            tasks = tasks.filter(task => task.priority === filter);
+        }
+
+        // search by title ,priority,startDate and endDate
+        if (searchQuery) {
+            tasks = tasks.filter(task => {
+                return task.title.toLowerCase().includes(searchQuery.toLowerCase())
+                    || task.priority.toLowerCase().includes(searchQuery.toLowerCase())
+                    || task.startDate.toString().toLowerCase().includes(searchQuery.toLowerCase())
+                    || task.endDate.toString().toLowerCase().includes(searchQuery.toLowerCase())
+            });
+        }
+
+
+
+        const totalTasks = await Task.countDocuments({ createdBy: req.user._id });
         const totalPages = Math.ceil(totalTasks / limit);
         const response = {
             total: totalTasks,
@@ -89,17 +107,19 @@ router.get('/', authMiddleware, async (req, res) => {
 
 // get overview tasks
 router.get('/overview', authMiddleware, async (req, res) => {
-    const totalTasks = await Task.countDocuments({createdBy: req.user._id});
-    const dueTasks = await Task.countDocuments({createdBy: req.user._id, endDate: {$lt: new Date()}});
-    const recentTasks = await Task.find({createdBy: req.user._id})
-        .sort({_id: 'desc'})
+    const totalTasks = await Task.countDocuments({ createdBy: req.user._id });
+    const dueTasks = await Task.countDocuments({ createdBy: req.user._id, endDate: { $lt: new Date() } });
+    const recentTasks = await Task.find({ createdBy: req.user._id })
+        .sort({ _id: 'desc' })
         .limit(5)
         .exec();
+    const upcomingTasks = await Task.countDocuments({ createdBy: req.user._id, endDate: { $gt: new Date() } });
 
     res.send({
         totalTasks,
         dueTasks,
         recentTasks,
+        upcomingTasks
     });
 });
 // Read Task by ID
@@ -140,7 +160,7 @@ router.put('/:id',
         // Check for validation errors
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({errors: errors.array()});
+            return res.status(400).json({ errors: errors.array() });
         }
 
 
@@ -187,13 +207,13 @@ router.get('/export', async (req, res) => {
     const workbook = new Exceljs.Workbook();
     const worksheet = workbook.addWorksheet('Tasks');
     worksheet.columns = [
-        {header: "Title", key: 'title', width: 30},
-        {header: "Start Date", key: 'startDate', width: 30},
-        {header: "End Date", key: 'endDate', width: 30},
-        {header: "Description", key: 'description', width: 30},
-        {header: "Priority", key: 'priority', width: 30},
-        {header: "Assignees", key: 'assignees', width: 30},
-        {header: "Projects", key: 'projects', width: 30},
+        { header: "Title", key: 'title', width: 30 },
+        { header: "Start Date", key: 'startDate', width: 30 },
+        { header: "End Date", key: 'endDate', width: 30 },
+        { header: "Description", key: 'description', width: 30 },
+        { header: "Priority", key: 'priority', width: 30 },
+        { header: "Assignees", key: 'assignees', width: 30 },
+        { header: "Projects", key: 'projects', width: 30 },
     ];
     const tasks = await Task.find()
         .populate('assignees', 'name email')

@@ -38,7 +38,8 @@ router.post('/register', [
         });
         await user.save();
         const token = generateAuthToken(user);
-        res.status(201).send({ user, token });
+
+        res.status(201).send({ user: _.pick(user, ['_id', 'name', 'email']), token });
     } catch (error) {
         res.status(400).send(error);
     }
