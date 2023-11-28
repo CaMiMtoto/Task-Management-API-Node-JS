@@ -54,7 +54,7 @@ router.post('/',
 router.get('/', authMiddleware, async (req, res) => {
     try {
         const page = parseInt(req.query.page ?? 1);
-        const limit = parseInt(req.query.limit ?? 3);
+        const limit = parseInt(req.query.limit ?? 10);
         const skip = (page - 1) * limit;
         const sortColumn = req.query.sortColumn ?? '_id';
         const sortOrder = req.query.sortOrder ?? 'asc';
