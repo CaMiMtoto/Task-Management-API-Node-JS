@@ -7,14 +7,32 @@ async function seed() {
     if (projectCount > 0) {
         return;
     }
-    for (let i = 0; i < 30; i++) {
+
+    const projects = [
+        "Starting up a company",
+        "Building a website",
+        "Building an app",
+        "Build a user interface",
+        "Design a logo",
+        "Design a website",
+        "Create a marketing plan",
+        "Create a business plan",
+        "Create a marketing campaign",
+        "Create a social media campaign",
+        "Advertising campaign",
+        "Migration to the cloud"
+    ]
+
+    for (const f of projects) {
         let createdBy = await User.findOne({});
         const newProject = new Project({
-            title: faker.lorem.sentence(),
-            createdBy: createdBy._id,
+            title: f,
+            createdBy: createdBy?._id,
         });
         await newProject.save();
     }
+
+
 }
 
 seed().then(() => {

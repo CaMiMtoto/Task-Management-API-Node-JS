@@ -23,8 +23,9 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/task-mana
         console.log('Connection failed');
     });
 
-
 app.use(bodyParser.json());
+// seed projects collection
+require('./seeders/projectSeeder');
 
 app.use('/api/tasks', taskRoutes);
 app.use('/api/auth', authRoutes); // Authentication routes
