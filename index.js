@@ -24,7 +24,6 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/task-mana
     });
 
 
-
 app.use(bodyParser.json());
 
 app.use('/api/tasks', taskRoutes);
@@ -44,17 +43,21 @@ const options = {
                 name: "MIT",
                 url: "https://spdx.org/licenses/MIT.html",
             },
-            contact: {
-                name: "LogRocket",
-                url: "https://logrocket.com",
-                email: "info@email.com",
-            },
         },
         servers: [
             {
                 url: "http://localhost:3000",
             },
         ],
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                },
+            },
+        },
     },
     apis: ["./routes/*.js"],
 };
@@ -63,7 +66,7 @@ const specs = swaggerJsdoc(options);
 app.use(
     "/api-docs",
     swaggerUi.serve,
-    swaggerUi.setup(specs, { explorer: true })
+    swaggerUi.setup(specs, {explorer: true})
 );
 
 app.listen(PORT, () => {
