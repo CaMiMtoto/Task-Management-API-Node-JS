@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
-const DB_URI = process.env.DB_URI || 'mongodb://localhost:27017/task-manager';
-
+const DB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/task-manager';
 mongoose.connect(DB_URI)
     .then(() => {
         console.log('Connected to database');

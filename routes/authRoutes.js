@@ -6,6 +6,7 @@ const User = require('../models/user');
 const {check, validationResult} = require('express-validator');
 const router = express.Router();
 const _ = require('lodash');
+const authMiddleware = require('../middleware/authMiddleware');
 
 // Generate JWT token for authentication
 const generateAuthToken = (user) => {
