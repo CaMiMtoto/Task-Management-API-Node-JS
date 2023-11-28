@@ -23,7 +23,7 @@ logout, create, read, update and delete tasks.it allows also to assign tasks to 
    ```
 4. Run the app
    ```sh
-    npm run dev
+    npm start
     ```
 5. Use Postman to test the API endpoints
 6. Use MongoDB Compass to view the database
